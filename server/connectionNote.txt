@@ -1,0 +1,4 @@
+noip.com gir dyn ip
+Installer deres dyn ip verktøy
+Websida er deploya til kjipest.surge.sh
+Mangler da bare en port forwarding igjennom routeren fra riktig port til riktig pc
