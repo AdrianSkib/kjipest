@@ -2,3 +2,14 @@ noip.com gir dyn ip
 Installer deres dyn ip verktøy
 Websida er deploya til kjipest.surge.sh
 Mangler da bare en port forwarding igjennom routeren fra riktig port til riktig pc
+
+global ip finder:
+https://www.myglobalip.com/
+
+Hvordan port forwarde
+https://eu.dlink.com/uk/en/support/faq/routers/wireless-routers/dkt-series/how-do-i-open-up-ports-to-my-computer-port-forwarding-on-this-router 
+
+for noe info om https via node.js:
+https://stackoverflow.com/questions/14293370/publish-node-js-server-on-the-internet 
+https://nodejs.org/en/about/
+https://developer.mozilla.org/en-US/docs/Learn/Server-side/Node_server_without_framework
