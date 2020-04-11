@@ -1,0 +1,2 @@
+node.js ( som også gir deg npm)
+åpne terminal i denne mappa og skriv npm install

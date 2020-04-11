@@ -1,0 +1,17 @@
+mongodb
+python
+	pymongo
+	pandas
+	numpy
+	pyplot
+	matplotlib
+	utm
+	requests
+	xmltodict
+git
+visualstudiocode
+	code runner
+	python
+node.js
+
+For å kjøre server: åpne terminal og skriv mongod

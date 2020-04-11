@@ -1,0 +1,10 @@
+- Sortere etter score og printe
+- Sette opp node.js
+- Lag get function fra node som henter toppliste med navn og score
+- Sette opp react app
+- Query database fra nettsted
+- Vise toppliste på nettstedet
+- Implementere søkebar på nettsted
+- Når et sted er blitt søkt på må appen hoppe til stedet i lista
+- Filtrere på fylke for å se lista for kun ett fylke
+	- Lag get function fra node som henter toppliste med navn og score for kun ett fylke
