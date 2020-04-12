@@ -143,6 +143,8 @@ def update_all_locations(df, collection):
     # If you need to change structure of db, do so in this function and uncomment.
     update_location(row, collection)
     # update_location(row, collection)
+  # Create sorted index so calling sort on collection is quick.
+  collection.create_index( [( "kjipestScore", -1 )] )
 
 def test_db_update():
   print("Test of updating Malvik")
@@ -173,7 +175,13 @@ def test_db_update():
   for x in updatedData:
     print(x)
 
+def test_indexing():
+  collection = connect_to_db()
+  collection.create_index( [( "kjipestScore", -1 )] )
+
+test_indexing()
 # test_db_update()
+
 
 # x = datetime.date.today()
 
