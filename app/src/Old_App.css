@@ -1,0 +1,45 @@
+.rowBox {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
+
+
+.row {
+  /* flex: 1 1 0px; */
+  text-align: left;
+  /* border: 1px solid #40E0D0	; */
+  padding: 10px;
+  /* width: 300px; */
+  display: flex;
+  flex-direction: row;
+}
+
+.rowCenter {
+  width: 300px;
+}
+
+.kjiphet {
+  flex: 1 1 0px;
+  text-align: right;
+}
+
+.location {
+  flex: 1 1 0px;
+}
+
+.index {
+  text-align: left;
+  width: 60px;
+}
+
+.banner {
+  text-align: center;
+  position: relative;
+  width: 100%;
+  height: 50px;
+}
+
+.listeDiv {
+  top: 100px;
+}
