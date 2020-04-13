@@ -1,0 +1,2 @@
+Legge inn prec_type, lat, long
+Researche AWS
