@@ -24,7 +24,6 @@ class App extends Component {
     this.setState({ data: data, gotData: true });
     var main = document.getElementById("main");
     main.style.height = window.innerHeight - 160 + "px";
-    // var listelement = document.getElementById("listelement");
     var list = document.getElementById("list");
     list.style.width = window.innerWidth - 300 + "px";
     var head = document.getElementById("categories");
@@ -51,7 +50,7 @@ class App extends Component {
   KjipestList() {
     return (
       <div style={{ display: "flex" }}>
-        <div style={{ flex: "1 1 auto", height: "73vh" }}>
+        <div style={{ flex: "1 1 auto", height: "100vh" }}>
           <AutoSizer>
             {({ height, width }) => (
               <List
@@ -145,10 +144,10 @@ class App extends Component {
       var head = document.getElementById("categories");
       head.style.width = window.innerWidth - 300 + "px";
       window.addEventListener("resize", handleResize);
-      return (_) => {
-        window.removeEventListener("resize", handleResize);
-      };
     }
+    return (_) => {
+      window.removeEventListener("resize", handleResize);
+    };
   }
 
   render() {

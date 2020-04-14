@@ -1,0 +1,3 @@
+start cmd i denne mappa
+npm run build
+serve -s build -l 80
