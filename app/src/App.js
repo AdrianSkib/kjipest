@@ -18,7 +18,8 @@ class App extends Component {
   }
 
   async componentDidMount() {
-    const response = await axios.get("http://85.164.172.93:8888/");
+    const response = await axios.get("http://84.214.69.73:8888/");
+    // const response = await axios.get("http://localhost:8888/");
     console.log(response);
     const data = await response.data;
     this.setState({ data: data, gotData: true });

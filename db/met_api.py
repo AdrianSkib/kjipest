@@ -12,7 +12,7 @@ import xmltodict
 
 
 
-def get_forecast_xml(lat: float, lng: float):
+def get_forecast_xml(lat, lng):
     """
     Query the locationforecast endpoint to retrieve weather forecast for specified location
     
@@ -94,7 +94,8 @@ def parse_weatherforecast(lat, lon):
             now_dict.update({'precipitation': np.nan,
                              'prec_type': 'nan'})
 
-
+        # Add lat and long
+        now_dict.update({'lat': lat, 'lon':lon})
         return now_dict
     
     else:
@@ -112,9 +113,9 @@ def get_current_weather(location_df, name_col = 'kommune'):
     """
 
     
-    assert 'lat' in location_df.columns, f"required column lat not in location_df (Columns: {location_df.columns})"
-    assert 'lon' in location_df.columns, f"required column lon not in location_df (Columns: {location_df.columns})"
-    assert name_col in location_df.columns, f"required cloumn {name_col} in location_df (Columns: {location_df.columns})"
+    assert 'lat' in location_df.columns, "required column lat not in location_df (Columns: {location_df.columns})"
+    assert 'lon' in location_df.columns, "required column lon not in location_df (Columns: {location_df.columns})"
+    assert name_col in location_df.columns, "required cloumn {name_col} in location_df (Columns: {location_df.columns})"
     
     row_list = []
     

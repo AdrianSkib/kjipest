@@ -3,6 +3,12 @@ import pandas as pd
 import datetime
 import numpy as np
 import math
+import bson
+from bson.raw_bson import RawBSONDocument
+
+shortTermWindowSize = 96 # Since there are 96 15-minutes a day and we want short term window of a day
+longTermWindowSize = shortTermWindowSize*30 # Long term window of a month. 
+# You should be able to adjust to a lot of weather variance after a month of it.
 
 # Sets up connection to server and returns the collection containing weather data for all locations.
 # @Todo: Add authentication (preddy easy)
@@ -15,142 +21,146 @@ def connect_to_db():
 def sigmoid(x):
   return 1 / (1 + math.exp(-x))
 
-# Calculates the kjiphet of a location. Should use both current and historic weather data.
-# @todo: Make this not be a constant.
-def calc_kjiphet():
-  return 4
+def movingMean(newMeasurement, oldMean):
+  newMeasurement = float(newMeasurement)
+  oldMean = float(oldMean)
+  return oldMean + (newMeasurement-oldMean)/(shortTermWindowSize+1)
 
-# @todo: Tune! Also, add mean variance to db and use deviation of variance from this mean 
-# variance instead of just variance
-def calc_kjiphet_with_history(oldDataDF,newData):
-  kjiphet = 0
-  for oldData in oldDataDF:
-    kjiphet += 0.001*sigmoid(float(oldData["temperature"]).var())
-    # kjiphet += 0.001*sigmoid(float(oldData["windSpeed"]).var())
-    # kjiphet += 0.001*sigmoid(float(oldData["precipitation"]).var())
-    # kjiphet += 0.001*sigmoid(float(oldData["fog"]).var())
-    # kjiphet += 0.001*sigmoid(float(oldData["lowClouds"]).var())
-    # kjiphet += 0.001*sigmoid(float(oldData["mediumClouds"]).var())
-    # kjiphet += 0.001*sigmoid(float(oldData["highClouds"]).var())
-  return 100*sigmoid(kjiphet + calc_kjiphet_without_history(newData))
+def newMean(oldData,row,field):
+  return movingMean(row[field],oldData["mean"][field])
 
-# @todo: Tune!
-def calc_kjiphet_without_history(newData):
-  kjiphet = 0
-  kjiphet += 1*sigmoid(0.01*abs(25 - float(newData["temperature"])))
-  # kjiphet += 10*sigmoid(float(newData["windSpeed"]))
-  kjiphet += 1*sigmoid(0.01*float(newData["precipitation"]))
-  # kjiphet += 1*sigmoid(float(newData["fog"]))
-  # kjiphet += 1*sigmoid(float(newData["lowClouds"]))
-  # kjiphet += 1*sigmoid(float(newData["mediumClouds"]))
-  # kjiphet += 1*sigmoid(float(newData["highClouds"]))
-  # Dunno about this man, must think about what the fuck dewpointTemp actually is.
-  # kjiphet += 0.1*sigmoid(abs(float(newData["dewpointTemperature"])-float(newData["temperature"]))) 
-  return 100*sigmoid(kjiphet)
+def movingVar(oldVar,oldMean,newMean,newMeasurement,shortTerm):
+  oldVar = float(oldVar)
+  oldMean = float(oldMean)
+  newMean = float(newMean)
+  newMeasurement = float(newMeasurement)
+  if shortTerm:
+    return oldVar + oldMean*oldMean - newMean*newMean + (newMeasurement*newMeasurement - oldVar - oldMean*oldMean)/(shortTermWindowSize+1)
+  else:
+    return oldVar + oldMean*oldMean - newMean*newMean + (newMeasurement*newMeasurement - oldVar - oldMean*oldMean)/(longTermWindowSize+1)
 
-# Inserts data from one location into database for the first time.
-def update_location_first_time(row, collection):
-  query = { "location": row["location"]}
-  currentDate = datetime.date.today()
-  values = { "$set": {"temperature":  [row["temperature"],0,0,0,0,0,0],
-                        "windDirection": [row["windDirection"],0,0,0,0,0,0],
-                        "windSpeed": [row["windSpeed"],0,0,0,0,0,0],
-                        "windGust": [row["windGust"],0,0,0,0,0,0],
-                        "humidity": [row["humidity"],0,0,0,0,0,0],
-                        "pressure": [row["pressure"],0,0,0,0,0,0],
-                        "cloudiness": [row["cloudiness"],0,0,0,0,0,0],
-                        "fog": [row["fog"],0,0,0,0,0,0],
-                        "lowClouds": [row["lowClouds"],0,0,0,0,0,0],
-                        "mediumClouds": [row["mediumClouds"],0,0,0,0,0,0],
-                        "highClouds": [row["highClouds"],0,0,0,0,0,0],
-                        "dewpointTemperature": [row["dewpointTemperature"],0,0,0,0,0,0],
-                        "precipitation": [row["precipitation"],0,0,0,0,0,0],
-                        "latestUpdateDate": currentDate.strftime("%Y-%m-%d"),
-                        "kjipestScore": 5}
-                        }
-                      
-  collection.update_one(query, values, upsert=True)              
+def newVariance(oldData,row,field,shortTerm,values):
+  return movingVar(oldData["var"][field],oldData["mean"][field],values["$set"]["mean"][field],row[field],shortTerm)
+
+# Calculates the kjiphet of a location. 
+def kjiphet(data):
+  return 100*sigmoid(0.1*abs(25-float(data["values"]["temperature"])))
 
 # Inserts data from one location into database.
 def update_location(row, collection):
   # Get old data
   query = { "location": row["location"]}
-  oldData = collection.find(query)
-  # Get current date for comparison
-  currentDate = datetime.date.today()
-  # Check if data already has been updated today. If not then push new data and calc new score.
-  updateBool = True
-  popBool = False
-  hadOldData = False
-  kjiphet = 0
-  for x in oldData:
-    # print(x)
-    if "latestUpdateTime" in x:
-      latestUpdateDate = datetime.datetime.strptime(x["latestUpdateDate"], "%Y-%m-%d").date()
-      # latestUpdateDate = datetime.datetime.strptime("2020-04-09", "%Y-%m-%d").date()
-      # print(latestUpdateDate)
-      if currentDate <= latestUpdateDate:
-        updateBool = False
-    if "temperature" in x and len(x["temperature"]) >= 7:
-      popBool = True
-    # Calc kjiphet
-    hadOldData = True
-    kjiphet = calc_kjiphet_with_history(oldData,row)
-  updateBool = True
-  if not hadOldData:
-    kjiphet = calc_kjiphet_without_history(row)
-  if updateBool:
-    # Add newest data to end of arrays.
-    values = { "$push": {"temperature":  row["temperature"],
-                        "windDirection": row["windDirection"],
-                        "windSpeed": row["windSpeed"],
-                        "windGust": row["windGust"],
-                        "humidity": row["humidity"],
-                        "pressure": row["pressure"],
-                        "cloudiness": row["cloudiness"],
-                        "fog": row["fog"],
-                        "lowClouds": row["lowClouds"],
-                        "mediumClouds": row["mediumClouds"],
-                        "highClouds": row["highClouds"],
-                        "dewpointTemperature": row["dewpointTemperature"],
-                        "precipitation": row["precipitation"]}
-                        }
-    collection.update_one(query, values, upsert=True)      
-    # Update kjiphet and latestUpdateDate
-    values = {"$set": {"latestUpdateDate": currentDate.strftime("%Y-%m-%d"),
-                        "kjipestScore": kjiphet}}
-    collection.update_one(query, values, upsert=True)   
-    if popBool:                      
-      # Remove first element of vector
-      values = { "$pop": {"temperature": -1,
-                          "windDirection": -1,
-                          "windSpeed": -1,
-                          "windGust": -1,
-                          "humidity": -1,
-                          "pressure": -1,
-                          "cloudiness": -1,
-                          "fog": -1,
-                          "lowClouds": -1,
-                          "mediumClouds": -1,
-                          "highClouds": -1,
-                          "dewpointTemperature": -1}
-                }   
-    collection.update_one(query, values, upsert=True)                
+  oldDataStruct = collection.find(query)
+  firstUpdate = True
+  values = {"$set": {"values": {"temperature":  row["temperature"],
+                                  "windDirection": row["windDirection"],
+                                  "windSpeed": row["windSpeed"],
+                                  "windGust": row["windGust"],
+                                  "humidity": row["humidity"],
+                                  "pressure": row["pressure"],
+                                  "cloudiness": row["cloudiness"],
+                                  "fog": row["fog"],
+                                  "lowClouds": row["lowClouds"],
+                                  "mediumClouds": row["mediumClouds"],
+                                  "highClouds": row["highClouds"],
+                                  "dewpointTemperature": row["dewpointTemperature"],
+                                  "precipitation": row["precipitation"]},
+                      "prec_type": row["prec_type"],
+                      "lat": row["lat"],
+                      "lon": row["lon"]}}
+  for oldData in oldDataStruct:
+    firstUpdate = False
+    values["$set"]["mean"]=      {"temperature":  newMean(oldData,row,"temperature"),
+                                  "windDirection": newMean(oldData,row,"windDirection"),
+                                  "windSpeed": newMean(oldData,row,"windSpeed"),
+                                  "windGust": newMean(oldData,row,"windGust"),
+                                  "humidity": newMean(oldData,row,"humidity"),
+                                  "pressure": newMean(oldData,row,"pressure"),
+                                  "cloudiness": newMean(oldData,row,"cloudiness"),
+                                  "fog": newMean(oldData,row,"fog"),
+                                  "lowClouds": newMean(oldData,row,"lowClouds"),
+                                  "mediumClouds": newMean(oldData,row,"mediumClouds"),
+                                  "highClouds": newMean(oldData,row,"highClouds"),
+                                  "dewpointTemperature": newMean(oldData,row,"dewpointTemperature"),
+                                  "precipitation": newMean(oldData,row,"precipitation")}
+    values["$set"]["var"]=        {"temperature": newVariance(oldData,row,"temperature",False,values),
+                                  "windDirection": newVariance(oldData,row,"windDirection",False,values),
+                                  "windSpeed": newVariance(oldData,row,"windSpeed",False,values),
+                                  "windGust": newVariance(oldData,row,"windGust",False,values),
+                                  "humidity": newVariance(oldData,row,"humidity",False,values),
+                                  "pressure": newVariance(oldData,row,"pressure",False,values),
+                                  "cloudiness": newVariance(oldData,row,"cloudiness",False,values),
+                                  "fog": newVariance(oldData,row,"fog",False,values),
+                                  "lowClouds": newVariance(oldData,row,"lowClouds",False,values),
+                                  "mediumClouds": newVariance(oldData,row,"mediumClouds",False,values),
+                                  "highClouds": newVariance(oldData,row,"highClouds",False,values),
+                                  "dewpointTemperature": newVariance(oldData,row,"dewpointTemperature",False,values),
+                                  "precipitation": newVariance(oldData,row,"precipitation",False,values)}
+    values["$set"]["longtermvar"]={"temperature": newVariance(oldData,row,"temperature",True,values),
+                                  "windDirection": newVariance(oldData,row,"windDirection",True,values),
+                                  "windSpeed": newVariance(oldData,row,"windSpeed",True,values),
+                                  "windGust": newVariance(oldData,row,"windGust",True,values),
+                                  "humidity": newVariance(oldData,row,"humidity",True,values),
+                                  "pressure": newVariance(oldData,row,"pressure",True,values),
+                                  "cloudiness": newVariance(oldData,row,"cloudiness",True,values),
+                                  "fog": newVariance(oldData,row,"fog",True,values),
+                                  "lowClouds": newVariance(oldData,row,"lowClouds",True,values),
+                                  "mediumClouds": newVariance(oldData,row,"mediumClouds",True,values),
+                                  "highClouds": newVariance(oldData,row,"highClouds",True,values),
+                                  "dewpointTemperature": newVariance(oldData,row,"dewpointTemperature",True,values),
+                                  "precipitation": newVariance(oldData,row,"precipitation",True,values)}
+  if firstUpdate:
+    values["$set"]["mean"]=      {"temperature":  row["temperature"],
+                                  "windDirection": row["windDirection"],
+                                  "windSpeed": row["windSpeed"],
+                                  "windGust": row["windGust"],
+                                  "humidity": row["humidity"],
+                                  "pressure": row["pressure"],
+                                  "cloudiness": row["cloudiness"],
+                                  "fog": row["fog"],
+                                  "lowClouds": row["lowClouds"],
+                                  "mediumClouds": row["mediumClouds"],
+                                  "highClouds": row["highClouds"],
+                                  "dewpointTemperature": row["dewpointTemperature"],
+                                  "precipitation": row["precipitation"]}
+    values["$set"]["var"]=       {"temperature": 0,
+                                  "windDirection": 0,
+                                  "windSpeed": 0,
+                                  "windGust": 0,
+                                  "humidity": 0,
+                                  "pressure": 0,
+                                  "cloudiness": 0,
+                                  "fog": 0,
+                                  "lowClouds": 0,
+                                  "mediumClouds": 0,
+                                  "highClouds": 0,
+                                  "dewpointTemperature": 0,
+                                  "precipitation": 0}
+    values["$set"]["longtermvar"]={"temperature": 0,
+                                  "windDirection": 0,
+                                  "windSpeed": 0,
+                                  "windGust": 0,
+                                  "humidity": 0,
+                                  "pressure": 0,
+                                  "cloudiness": 0,
+                                  "fog": 0,
+                                  "lowClouds": 0,
+                                  "mediumClouds": 0,
+                                  "highClouds": 0,
+                                  "dewpointTemperature": 0,
+                                  "precipitation": 0}
+  values["$set"]["kjipestScore"]= kjiphet(values["$set"])
+  collection.update_one(query, values, upsert=True) 
 
 # Update all locations in database with new weather data.
 def update_all_locations(df, collection):
-  for index, row in df.iterrows():
-    # If you need to change structure of db, do so in this function and uncomment.
+  for _, row in df.iterrows():
     update_location(row, collection)
-    # update_location(row, collection)
   # Create sorted index so calling sort on collection is quick.
   collection.create_index( [( "kjipestScore", -1 )] )
 
 def test_db_update():
-  print("Test of updating Malvik")
-  x = datetime.date.today()
-  # print(x)
-  xx = datetime.datetime.strptime("2020-04-08", "%Y-%m-%d").date()
+  print("Test of updating location")
   d = {"location": "Kristiansand",
     "temperature": [2],
     "windDirection": [2],
@@ -164,7 +174,10 @@ def test_db_update():
     "mediumClouds": [2],
     "highClouds": [2],
     "dewpointTemperature": [2],
-    "precipitation": [2]}
+    "precipitation": [2],
+    "lat": [58.16],
+    "lon": [8.01],
+    "prec_type": [1]}
   df = pd.DataFrame(d)
   # print(xx)
   collection = connect_to_db()
@@ -175,59 +188,5 @@ def test_db_update():
   for x in updatedData:
     print(x)
 
-def test_indexing():
-  collection = connect_to_db()
-  collection.create_index( [( "kjipestScore", -1 )] )
-
-test_indexing()
 # test_db_update()
-
-
-# x = datetime.date.today()
-
-# kjipestDBClient = pymongo.MongoClient("mongodb://localhost:27017/")
-    # username='admin',
-    # password='420SmokeIt',
-    # authSource='the_database',
-    # authMechanism='SCRAM-SHA-256')
-# kjipestDB = kjipestDBClient["KjipestDB2"]
-# kjipestDB.command("createUser", "admin", pwd="420SuckADick", roles=["root"])
-
-# collection = kjipestDB["Locations"]
-# print(kjipestDB.list_collection_names())
-
-# mylist = [
-#   { "name": "Lillesand", "temp": 69},
-#   { "name": "Oslo", "temp": 420}
-# ]
-# insert_or_update("Grimstad", 40, tettstedCol)
-# insert_or_update("Lillesand", 69, tettstedCol)
-# insert_or_update("Oslo", 420, tettstedCol)
-
-# insertResponse = tettstedCol.insert_many(mylist)
-# print(insertResponse.inserted_ids)
-
-# myquery = { "name": "Grimstad" }
-# newvalues = { "$set": { "temp": 50 } }
-# tettstedCol.update_one(myquery, newvalues, upsert=True)
-# myquery = { "name": "Grimstad" }
-# mydoc = tettstedCol.find(myquery)
-
-# for x in mydoc:
-#   print(x)
-
-# mydoc = tettstedCol.find(myquery)
-
-# for x in mydoc:
-#   print(x)
-###
-# myquery = { "temp": { "$gt": 30 } }
-
-# mydoc = tettstedCol.find(myquery)
-
-# for x in mydoc:
-#   print(x)
-
-# tettstedCol.delete_many(myquery)
-
 

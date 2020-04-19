@@ -1,9 +1,10 @@
 import pandas as pd
 import numpy as np
-# import time
+import time
 import os
 import datareader, met_api
 from db import *
+import math
 
 # Collects weather data and updates the database.
 def update_database():
@@ -20,19 +21,30 @@ def update_database():
     locations_df['lat'] = lats
     locations_df['lon'] = lons
     locations_df = locations_df.rename(columns = {'name': 'location'})
-    locations_df
+    
 
     # Get forecats
     # tic = time.clock()
     forecast_df = met_api.get_current_weather(locations_df, name_col = 'location')
     # toc = time.clock()
     # toc - tic
-    forecast_df
         
     # Update all locations in database 
     update_all_locations(forecast_df,collection)
     print("All locations updated with fresh weather data.")
 
-print("Ikke lukk vinduet enda, Olivia")
-update_database()
-print("Nå er det ferdig og kan lukkes :) Takk for at du lar meg stjele litt datakraft! <3 ")
+def collection_loop():
+    print("Starting collection loop")
+    while True:
+        print("Updating...")
+        tic = time.clock()
+        update_database()
+        toc = time.clock()
+        diff = (toc - tic)
+        print("Used " + str(math.floor(diff)) + " seconds to update database.")
+        waitTime = 60*15 - math.floor(diff)
+        if waitTime > 0:
+            print(str(math.floor(waitTime/6)/10) + " minutes until next update.")
+            time.sleep(waitTime) # Makes sure the update is run every 15th minute
+
+collection_loop()
