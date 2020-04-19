@@ -1,10 +1,12 @@
+# coding=utf-8
 import pymongo
 import pandas as pd
 import datetime
 import numpy as np
 import math
-import bson
-from bson.raw_bson import RawBSONDocument
+from meteocalc import Temp, feels_like
+import matplotlib.pyplot as plt
+
 
 shortTermWindowSize = 96 # Since there are 96 15-minutes a day and we want short term window of a day
 longTermWindowSize = shortTermWindowSize*30 # Long term window of a month. 
@@ -35,16 +37,76 @@ def movingVar(oldVar,oldMean,newMean,newMeasurement,shortTerm):
   newMean = float(newMean)
   newMeasurement = float(newMeasurement)
   if shortTerm:
-    return oldVar + oldMean*oldMean - newMean*newMean + (newMeasurement*newMeasurement - oldVar - oldMean*oldMean)/(shortTermWindowSize+1)
+    # return oldVar + oldMean*oldMean - newMean*newMean + (newMeasurement*newMeasurement - oldVar - oldMean*oldMean)/(shortTermWindowSize+1)
+    return oldVar + ((newMeasurement - oldMean)*(newMeasurement - oldMean) - oldVar)/(shortTermWindowSize+1)
   else:
-    return oldVar + oldMean*oldMean - newMean*newMean + (newMeasurement*newMeasurement - oldVar - oldMean*oldMean)/(longTermWindowSize+1)
+    return oldVar + ((newMeasurement - oldMean)*(newMeasurement - oldMean) - oldVar)/(longTermWindowSize+1)
+    # return oldVar + oldMean*oldMean - newMean*newMean + (newMeasurement*newMeasurement - oldVar - oldMean*oldMean)/(longTermWindowSize+1)
 
 def newVariance(oldData,row,field,shortTerm,values):
   return movingVar(oldData["var"][field],oldData["mean"][field],values["$set"]["mean"][field],row[field],shortTerm)
 
-# Calculates the kjiphet of a location. 
+# 
+def calcTempKjiphet(effTemp):
+  if effTemp > 35:
+    diff = abs(35 - effTemp)
+    a = float(3)/5
+    b = 1
+  if effTemp > 30 and effTemp <= 35:
+    diff = abs(30 - effTemp)
+    a = float(1)/5
+    b = 0
+  if effTemp > 5 and effTemp <= 30:
+    diff = abs(30 - effTemp)
+    a = float(2)/25
+    b = 0
+  if effTemp > -10 and effTemp <= 5:
+    diff = abs(5 - effTemp)
+    a = float(2)/15
+    b = 2
+  if effTemp <= -10:
+    diff = abs(-10 - effTemp)
+    a = float(4)/15
+    b = 4
+  return a*diff + b
+
+# Fog is worst, then low clouds, medium clouds and finally high clouds. Picks the one with highest percentage and calcs based on that.
+def calcCloudKjiphet(fog, low, med, hi):
+  maxCloud = max(fog,low,med,hi)
+  if fog == maxCloud:
+    return float(8)/100*fog
+  if low == maxCloud:
+    return float(6)/100*fog
+  if med == maxCloud:
+    return float(4)/100*med
+  else: 
+    return float(2)/100*med
+
+# Calculates the kjiphet of a location. 8 is almost max of sigmoid, so take max value of something and divide by 8 to get constant.
 def kjiphet(data):
-  return 100*sigmoid(0.1*abs(25-float(data["values"]["temperature"])))
+  # Get effective temperature
+  temp = Temp(float(data["values"]["temperature"]),"c")
+  windSpeed = 2.23694*float(data["values"]["humidity"])
+  humidity = float(data["values"]["humidity"])
+  effTemp = feels_like(temperature=temp, humidity=humidity, wind_speed=windSpeed).c
+  # Calc temperature kjiphet
+  tempKjiphet = calcTempKjiphet(effTemp)
+  # 20 m/s is max wind speed ish, everything above is about the same 
+  windKjiphet = float(8)/20*float(data["values"]["windSpeed"])
+  # gust of that are more than 10 m/s more than the wind speed really sucks (Does gust value work like this?)
+  gust = float(data["values"]["windGust"])
+  gustKjiphet = 0
+  if gust > 0:
+    gustKjiphet = float(10)/8*(gust - float(data["values"]["windSpeed"]))
+  cloudKjiphet = calcCloudKjiphet(float(data["values"]["fog"]),float(data["values"]["lowClouds"]),float(data["values"]["mediumClouds"]),float(data["values"]["highClouds"]))
+  # precipitation is mm/minute I believe, so the max value recorded in Norway is 4.3, normal amount seems to be under 1
+  precKjiphet = 2*float(data["values"]["precipitation"])
+  # Variance kjiphet still not implemented
+  # varianceKjiphet = 0
+  # Interplay kjiphet not implemented
+  # interplayKjiphet = 0 # Typ drizzle er chill når det er horevarmt, regn er ekstra kjipt når det temp nær
+  # Weight the different kjiphet's, summing weights to 1
+  return 100*sigmoid(0.40*tempKjiphet + 0.10*gustKjiphet + 0.10*cloudKjiphet + 0.20*precKjiphet) 
 
 # Inserts data from one location into database.
 def update_location(row, collection):
@@ -159,6 +221,17 @@ def update_all_locations(df, collection):
   # Create sorted index so calling sort on collection is quick.
   collection.create_index( [( "kjipestScore", -1 )] )
 
+def recalc_kjiphet():
+  print("Updating Kjiphet.")
+  collection = connect_to_db()
+  data = collection.find()
+  for x in data:
+    values = {"$set": {"kjipestScore": kjiphet(x)}}
+    query = { "location": x["location"]}
+    collection.update_one(query, values, upsert=True) 
+  collection.create_index( [( "kjipestScore", -1 )] )
+  print("All kjipestScore's updated.")
+
 def test_db_update():
   print("Test of updating location")
   d = {"location": "Kristiansand",
@@ -188,5 +261,14 @@ def test_db_update():
   for x in updatedData:
     print(x)
 
-# test_db_update()
+def plotCalcTempKjiphet():
+  a = range(-35, 45)
+  b = []
+  for temp in a:
+    b.append(calcTempKjiphet(temp))
+  plt.plot(a,b)
+  plt.show()
+  input("Press key to stop")
 
+# test_db_update()
+recalc_kjiphet()
