@@ -51,7 +51,7 @@
   }
   
   #search{
-  
+    opacity: 1;
     width: 60%;
   }
   
@@ -211,3 +211,17 @@
   }
   
   ::-webkit-scrollbar {display:none;}
+
+  .searchItem {
+    height: auto;
+    cursor: pointer;
+    opacity: 1;
+    background-color: #FFFFFF;	
+  } .searchItem:hover {
+    background-color: #E5E5E5;
+    opacity: 1;
+  }
+
+  .searchListElement{
+    opacity: 1;
+  }

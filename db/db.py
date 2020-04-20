@@ -106,7 +106,7 @@ def kjiphet(data):
   # Interplay kjiphet not implemented
   # interplayKjiphet = 0 # Typ drizzle er chill når det er horevarmt, regn er ekstra kjipt når det temp nær
   # Weight the different kjiphet's, summing weights to 1
-  return 100*sigmoid(0.40*tempKjiphet + 0.10*gustKjiphet + 0.10*cloudKjiphet + 0.20*precKjiphet) 
+  return 100*sigmoid(0.1*(0.40*tempKjiphet + 0.05*gustKjiphet + 0.05*cloudKjiphet + 0.20*precKjiphet + 0.2*windKjiphet)) 
 
 # Inserts data from one location into database.
 def update_location(row, collection):
