@@ -108,6 +108,10 @@ def kjiphet(data):
   # Weight the different kjiphet's, summing weights to 1
   return 100*sigmoid(0.1*(0.40*tempKjiphet + 0.05*gustKjiphet + 0.05*cloudKjiphet + 0.20*precKjiphet + 0.2*windKjiphet)) 
 
+def create_indexes(collection):
+  collection.create_index( [( "kjipestScore", -1 )] )
+  collection.create_index([("loc", pymongo.GEOSPHERE)])
+
 # Inserts data from one location into database.
 def update_location(row, collection):
   # Get old data
@@ -128,8 +132,9 @@ def update_location(row, collection):
                                   "dewpointTemperature": row["dewpointTemperature"],
                                   "precipitation": row["precipitation"]},
                       "prec_type": row["prec_type"],
-                      "lat": row["lat"],
-                      "lon": row["lon"]}}
+                      "loc": {"type": "Point",
+                              "coordinates": [row["lon"], row["lat"]]}
+  }}
   for oldData in oldDataStruct:
     firstUpdate = False
     values["$set"]["mean"]=      {"temperature":  newMean(oldData,row,"temperature"),
@@ -219,7 +224,7 @@ def update_all_locations(df, collection):
   for _, row in df.iterrows():
     update_location(row, collection)
   # Create sorted index so calling sort on collection is quick.
-  collection.create_index( [( "kjipestScore", -1 )] )
+  create_indexes(collection)
 
 def recalc_kjiphet():
   print("Updating Kjiphet.")

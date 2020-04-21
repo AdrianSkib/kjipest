@@ -18,28 +18,41 @@ class App extends Component {
       data: [],
       searchingFor: '',
       gotData: false,
-      currentLoc: "Lillesand",
-      currentIndex: 666,
-      currentScore: 69,
+      currentLoc: "Select location",
+      currentIndex: -1,
+      currentScore: -1,
       flipList: false,
-      orderText: "Kjipest – Minst kjipt ↓"
+      orderText: "Kjipest – Minst kjipt ↓",
+      locData: {},
+      hasPos: false,
+      lat: "",
+      lon: ""
     };
   }
   listRef = React.createRef();
 
   async componentDidMount() {
     const response = await axios.get("http://84.214.69.73:8888/");
-    // const response = await axios.get("http://localhost:8888/");
-    // console.log(response);
     const data = await response.data;
     const dataWithId = data.map((currentItem, index) => {currentItem.index = index; return(currentItem)})
-    this.setState({ data: dataWithId, gotData: true });
+    this.setState({ data: dataWithId, gotData: true});
     var main = document.getElementById("main");
     main.style.height = window.innerHeight - 160 + "px";
     var list = document.getElementById("list");
     list.style.width = window.innerWidth - 300 + "px";
     var head = document.getElementById("categories");
     head.style.width = window.innerWidth - 300 + "px";
+    if (navigator.geolocation) {
+      async function getPosData(position){
+        const locresponse = await axios.get("http://84.214.69.73:8888/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
+        const locData = await locresponse.data;
+        let objWithId = dataWithId.find(o => o.location === locData.location);
+        this.setState({ locData: locData, 
+                        currentLoc: locData.location, currentIndex: objWithId.index, currentScore: locData.kjipestScore});
+        this.setState({lat: position.coords.latitude, lon: position.coords.longitude, hasPos: true});
+        };
+      await navigator.geolocation.getCurrentPosition(getPosData.bind(this));
+    }
   }
 
   Row = ({ index, style }) => {
@@ -210,11 +223,11 @@ class App extends Component {
 
         <div id="main">
           <div id="list">{this.KjipestList()}</div>
-          <div className="sidebar">
+          <div className="sidebar" >
             <div className="localinfo">
               <div id="localscore">
                 <h3>Score:</h3>
-                <h1>{this.state.currentScore}</h1>
+                <h1>{this.state.currentScore.toFixed(2)}</h1>
               </div>
               <img src={require("./img/c/partlycloudy.svg")} alt="" />
               <div className="localrank">

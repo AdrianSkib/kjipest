@@ -32,7 +32,7 @@ MongoClient.connect(dbURL, function (err, dbclient) {
 });
 // Make sure connections are accepted from frontend
 app.use(cors());
-// Set up GET routine
+// Set up GET sorted routine
 app.get("/", (req, res) => {
   console.log("Got connection!");
   // // Connect to Mongo
@@ -55,6 +55,32 @@ app.get("/", (req, res) => {
       });
   });
 });
+
+// Set up GET routine for getting current pos info based on lat lon
+app.get("/lonlat/:lon&:lat", (req, res) => {
+  var lon = parseFloat(req.params.lon);
+  var lat = parseFloat(req.params.lat);
+  console.log("Got lonlat connection! Lon: " + lon + ", lat: " + lat);
+  // // Connect to Mongo
+  MongoClient.connect(dbURL, function (err, dbclient) {
+    if (err) {
+      throw err;
+    }
+    var db = dbclient.db("KjipestDB");
+    // Sort by kjiphet and return sorted list of locations and their kjipestScore
+    db.collection("Locations")
+      .find({ loc: { $near: {$geometry: {type: "Point", coordinates: [lon, lat]}}}})
+      // .limit(1)
+      .toArray(function (err, result) {
+        if (err) {
+          console.log(err);
+          res.json(err);
+        }
+        res.json(result[0]);
+      });
+  });
+});
+
 // Specify the Port where the backend server can be accessed and start listening on that port
 const port = process.env.PORT || 8888;
 const hostname = "0.0.0.0";
