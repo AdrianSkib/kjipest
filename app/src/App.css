@@ -225,3 +225,14 @@
   .searchListElement{
     opacity: 1;
   }
+
+  .localpercentage {
+    padding: 0; 
+    margin: 0;
+  }
+
+  .localpercentagebottom {
+    padding: 0;
+    margin: 0;
+    margin-bottom: 20px;
+  }

@@ -18,7 +18,7 @@ class App extends Component {
       data: [],
       searchingFor: '',
       gotData: false,
-      currentLoc: "Select location",
+      currentLoc: "Laster din posisjon",
       currentIndex: -1,
       currentScore: -1,
       flipList: false,
@@ -158,6 +158,22 @@ class App extends Component {
     )
   }
 
+  getLocalScore(){
+    if (this.state.currentScore < 0){
+      return "__"
+    }else{
+      return this.state.currentScore.toFixed(2)
+    }
+  }
+
+  getLocalPercentage(){
+    if (this.state.currentScore < 0){
+      return ("__")
+    }else{
+      return ((this.state.currentIndex/this.state.data.length*100).toFixed(1).toString() + " %")
+    }
+  }
+
   renderPage() {
     const searchTerm = this.state.searchingFor;
     let data = searchTerm 
@@ -234,12 +250,17 @@ class App extends Component {
             <div className="localinfo">
               <div id="localscore">
                 <h3>Score:</h3>
-                <h1>{this.state.currentScore.toFixed(2)}</h1>
+                <h1>
+                  {this.getLocalScore()}
+                </h1>
               </div>
               <img src={require("./img/c/partlycloudy.svg")} alt="" />
               <div className="localrank">
-                <h3>Rangering:</h3>
-                <h1>{this.state.currentIndex}</h1>
+                {/* <h3 className="localpercentage">Topp</h3> */}
+                <h1 className="localpercentage">
+                  {this.getLocalPercentage()}
+                </h1>
+                <h3 className="localpercentagebottom">av Norge har det kjipere enn deg</h3>
               </div>
             </div>
             <div className="logo">
