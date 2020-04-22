@@ -32,7 +32,8 @@ class App extends Component {
   listRef = React.createRef();
 
   async componentDidMount() {
-    const response = await axios.get("http://84.214.69.73:8888/");
+    // const response = await axios.get("http://84.214.69.73:8888/");
+    const response = await axios.get("https://kjipest.no/sorted");
     const data = await response.data;
     const dataWithId = data.map((currentItem, index) => {currentItem.index = index; return(currentItem)})
     this.setState({ data: dataWithId, gotData: true});
@@ -44,7 +45,8 @@ class App extends Component {
     head.style.width = window.innerWidth - 300 + "px";
     if (navigator.geolocation) {
       async function getPosData(position){
-        const locresponse = await axios.get("http://84.214.69.73:8888/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
+        // const locresponse = await axios.get("http://84.214.69.73:8888/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
+        const locresponse = await axios.get("https://kjipest.no/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
         const locData = await locresponse.data;
         let objWithId = dataWithId.find(o => o.location === locData.location);
         this.setState({ locData: locData, 
@@ -103,8 +105,13 @@ class App extends Component {
       </div>
     );
   }
-  onSelect = (value, selection) => {this.listRef.current.scrollToItem(selection.index, "start");
-                                    this.setState({searchingFor: value});}
+  onSelect = (value, selection) => {
+    if (this.state.flipList){
+      this.listRef.current.scrollToItem(this.state.data.length - selection.index - 3, "start");
+    } else{
+      this.listRef.current.scrollToItem(selection.index, "start");
+    }              
+    this.setState({searchingFor: value});}
 
   renderItem = (item) => {
     return <div className='searchItem'>{item.location}</div>

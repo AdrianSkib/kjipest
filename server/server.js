@@ -1,9 +1,14 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 var MongoClient = require("mongodb");
+var fs = require('fs')
+var https = require('https')
 var cors = require("cors");
+const path = require('path');
 // Setup express app
 const app = express();
+
+
 app.use(
   bodyParser.urlencoded({
     extended: false,
@@ -33,7 +38,7 @@ MongoClient.connect(dbURL, function (err, dbclient) {
 // Make sure connections are accepted from frontend
 app.use(cors());
 // Set up GET sorted routine
-app.get("/", (req, res) => {
+app.get("/sorted/", (req, res) => {
   console.log("Got connection!");
   // // Connect to Mongo
   MongoClient.connect(dbURL, function (err, dbclient) {
@@ -81,9 +86,21 @@ app.get("/lonlat/:lon&:lat", (req, res) => {
   });
 });
 
+var __dirname = "../app/";
+app.use(express.static(path.join(__dirname, 'finishedbuild')));
+/* GET React App */
+app.get('/', function (req, res) {
+  console.log("Got frontend request");
+  res.sendFile(path.join(__dirname, 'finishedbuild', 'index.html'));
+});
+
 // Specify the Port where the backend server can be accessed and start listening on that port
-const port = process.env.PORT || 8888;
+const port = process.env.PORT || 80;
 const hostname = "0.0.0.0";
+// https.createServer({
+//   key: fs.readFileSync('server.key'),
+//   cert: fs.readFileSync('server.cert')
+// }, app).
 app.listen(port, hostname, () =>
   console.log(`Server up and running on port ${port}.`)
 );

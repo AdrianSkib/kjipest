@@ -1,0 +1,12 @@
+For å få hele dritten til å kjøre må følgende gjøres
+
+DB: Åpne terminal hvor som helst og kjør sudo mongod --dbpath=STRING_MED_FULL_PATH_TIL_DER_DU_VIL_HA_/_HAR_DB_FILER 
+På Adrian sin mac blir det sudo mongod --dbpath="/Users/adrianskibelid/data"
+
+Frontend: Frontend bygges ved å stå i app-mappen og kjøre npm run build. 
+Det trengs kun å gjøres første gang eller ved endring i frontend.
+
+Server: Åpne terminal i server-mappen og kjør node server.js
+Den serverer frontend og tar hånd om https requests for data fra frontend.
+
+Python-skript for å oppdatere db med ny værdata hvert kvarter: Åpne terminal i db-mappen og kjør python collect_weather_data.python

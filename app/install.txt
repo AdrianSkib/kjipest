@@ -1,0 +1,2 @@
+Stå i denne mappen og kjør npm install ( installer node.js for å få npm. Den trengs og for serveren. )
+Når det er gjort så bygges prosjektet med npm run build

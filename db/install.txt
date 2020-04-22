@@ -14,4 +14,4 @@ visualstudiocode
 	python
 node.js
 
-For å kjøre server: åpne terminal og skriv mongod
+For ï¿½ kjï¿½re server: ï¿½pne terminal i denne mappen og skriv sudo mongod --dbpath="/Users/adrianskibelid/data"
