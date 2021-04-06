@@ -26,37 +26,49 @@ class App extends Component {
       locData: {},
       hasPos: false,
       lat: "",
-      lon: ""
+      lon: "",
+      width: window.innerWidth    
     };
   }
   listRef = React.createRef();
 
   async componentDidMount() {
+    window.addEventListener("resize", this.handleResize);
     // const response = await axios.get("http://84.214.69.73:8888/");
     // const response = await axios.get("https://kjipest.no/sorted");
-    const response = await axios.get("http://localhost:80/sorted");
+    const response = await axios.get("http://kjipestnodeserver.azurewebsites.net/sorted");
     const data = await response.data;
     const dataWithId = data.map((currentItem, index) => {currentItem.index = index; return(currentItem)})
     this.setState({ data: dataWithId, gotData: true});
-    var main = document.getElementById("main");
-    main.style.height = window.innerHeight - 160 + "px";
-    var list = document.getElementById("list");
-    list.style.width = window.innerWidth - 300 + "px";
-    var head = document.getElementById("categories");
-    head.style.width = window.innerWidth - 300 + "px";
-    if (navigator.geolocation) {
-      async function getPosData(position){
-        // const locresponse = await axios.get("http://84.214.69.73:8888/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
-        // const locresponse = await axios.get("https://kjipest.no/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
-        const locresponse = await axios.get("http://localhost:80/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
-        const locData = await locresponse.data;
-        let objWithId = dataWithId.find(o => o.location === locData.location);
-        this.setState({ locData: locData, 
-                        currentLoc: locData.location, currentIndex: objWithId.index, currentScore: locData.kjipestScore});
-        this.setState({lat: position.coords.latitude, lon: position.coords.longitude, hasPos: true});
-        };
-      await navigator.geolocation.getCurrentPosition(getPosData.bind(this));
+    const { width } = this.state;
+    const isMobile = width <= 1500;
+
+    if (isMobile){}
+    else{
+      var main = document.getElementById("main");
+      main.style.height = window.innerHeight - 160 + "px";
+      var list = document.getElementById("list");
+      list.style.width = window.innerWidth - 300 + "px";
+      var head = document.getElementById("categories");
+      head.style.width = window.innerWidth - 300 + "px";
     }
+      if (navigator.geolocation) {
+        async function getPosData(position){
+          // const locresponse = await axios.get("http://84.214.69.73:8888/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
+          // const locresponse = await axios.get("https://kjipest.no/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
+          const locresponse = await axios.get("http://kjipestnodeserver.azurewebsites.net/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
+          const locData = await locresponse.data;
+          let objWithId = dataWithId.find(o => o.location === locData.location);
+          this.setState({ locData: locData, 
+                          currentLoc: locData.location, currentIndex: objWithId.index, currentScore: locData.kjipestScore});
+          this.setState({lat: position.coords.latitude, lon: position.coords.longitude, hasPos: true});
+          };
+        await navigator.geolocation.getCurrentPosition(getPosData.bind(this));
+      }
+    
+  }
+  async componentWillUnmount() {
+    window.addEventListener("resize", this.handleResize);
   }
 
   Row = ({ index, style }) => {
@@ -274,28 +286,42 @@ class App extends Component {
       </div>
     );
   }
+  renderMobilePage(){
+    return <p>{"Mobile page rendered!"}</p>
+  }
 
-  useEffect() {
-    function handleResize() {
-      var main = document.getElementById("main");
+
+  handleResize = (e) => {
+    var main = document.getElementById("main");
+    if (main !== undefined && main !== null){
       main.style.height = window.innerHeight - 160 + "px";
       var list = document.getElementById("list");
       list.style.width = window.innerWidth - 300 + "px";
       var head = document.getElementById("categories");
       head.style.width = window.innerWidth - 300 + "px";
-      window.addEventListener("resize", handleResize);
     }
-    return (_) => {
-      window.removeEventListener("resize", handleResize);
-    };
-  }
+    console.log("changed width to ", window.innerWidth)
+    this.setState({ width: window.innerWidth });
+    console.log(this.state.width);
+   };
 
   render() {
-    if (this.state.gotData) {
-      return <div>{this.renderPage()}</div>;
-    } else {
-      return <div></div>;
+    const { width } = this.state;
+    const isMobile = width <= 700;
+    console.log(width)
+    if (isMobile){
+      if (this.state.gotData) {}
+      else {}
+      return <div>{this.renderMobilePage()}</div>
+    } else{
+      if (this.state.gotData) {
+        return <div>{this.renderPage()}</div>;
+      }
+      else {
+        return <div></div>;
+      }
     }
+    
   }
 }
 
