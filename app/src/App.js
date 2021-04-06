@@ -27,7 +27,8 @@ class App extends Component {
       hasPos: false,
       lat: "",
       lon: "",
-      width: window.innerWidth    
+      width: window.innerWidth,
+      mobileWidth: 1000 
     };
   }
   listRef = React.createRef();
@@ -41,7 +42,7 @@ class App extends Component {
     const dataWithId = data.map((currentItem, index) => {currentItem.index = index; return(currentItem)})
     this.setState({ data: dataWithId, gotData: true});
     const { width } = this.state;
-    const isMobile = width <= 1500;
+    const isMobile = width <= this.state.mobileWidth;
 
     if (isMobile){}
     else{
@@ -106,7 +107,7 @@ class App extends Component {
                 className="List"
                 height={height}
                 itemCount={this.state.data.length}
-                itemSize={80}
+                itemSize={70}
                 width={width}
                 ref={this.listRef}
                 itemData={this.state.flipList}
@@ -232,7 +233,7 @@ class App extends Component {
               <h3>Rangering</h3>
             </div>
             <div className="head" id="cloc">
-              <h3>Sted</h3>
+              <h3 >Sted</h3>
             </div>
             <div className="head" id="cscore">
               <h3 onClick={() => {
@@ -287,27 +288,102 @@ class App extends Component {
     );
   }
   renderMobilePage(){
-    return <p>{"Mobile page rendered!"}</p>
+    const searchTerm = this.state.searchingFor;
+    let data = searchTerm 
+      ? this.state.data.filter(item =>
+          item.location.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      : []
+    return (
+      <div>
+        <div>
+          <nav>
+            <div className="nav" id="search">
+              {/* <input type="search" name="search" placeholder="søk" value="" /> */}
+              <Autocomplete
+                items={data}
+                value={this.state.searchingFor}
+                
+                renderItem={this.renderItem}
+                renderMenu={this.renderMenu}
+                
+                getItemValue={ item => item.location }
+                onChange={(e, value)=> this.setState({searchingFor: value})}
+                onSelect={this.onSelect}
+                inputProps={{ placeholder: 'søk' }}
+              />
+            </div>
+            <div className="nav" id="navlist">
+              <h2>Liste</h2>
+            </div>
+            <div className="nav">
+              <h2>Deg</h2>
+            </div>
+            <div className="nav">
+              <h2>Kart</h2>
+            </div>
+            <div className="nav">
+              <h2>Info</h2>
+            </div>
+          </nav>
+        </div>
+
+        <div className="subheader">
+          <div id="categories">
+            <div className="head" id="crank" >
+              <h3>Rangering</h3>
+            </div>
+            <div className="head" id="cloc" >
+              <h3>Sted</h3>
+            </div>
+            <div className="head" id="cscore" >
+              <h3 onClick={() => {
+                                  if (this.state.flipList){
+                                    this.setState({ orderText: "Kjipest – Minst kjipt ↓" ,
+                                                    flipList: false});
+                                    this.listRef.current.scrollToItem(0, "start");
+                                  } else {
+                                    this.setState({ orderText: "Kjipest – Minst kjipt ↑" ,
+                                                    flipList: true});
+                                    this.listRef.current.scrollToItem(0, "start");
+                                  }}}>
+      {this.state.orderText}</h3>
+            </div>
+            <div className="head" id="cicon">
+              <h3>Værtyper</h3>
+            </div>
+          </div>
+        </div>
+        <div id="main">
+          <div id="list" style={{width:"100%"}}>{this.KjipestList()}</div>
+        </div>
+        <script type="text/javascript" src="./script.js" />
+      </div>
+    );
   }
 
 
   handleResize = (e) => {
     var main = document.getElementById("main");
-    if (main !== undefined && main !== null){
-      main.style.height = window.innerHeight - 160 + "px";
-      var list = document.getElementById("list");
-      list.style.width = window.innerWidth - 300 + "px";
-      var head = document.getElementById("categories");
-      head.style.width = window.innerWidth - 300 + "px";
+    var list = document.getElementById("list");
+    var head = document.getElementById("categories");
+    var crank = document.getElementById("crank");
+    var cloc = document.getElementById("cloc");
+    var cscore = document.getElementById("cscore");
+    var cicon = document.getElementById("cicon");
+    main.style.height = window.innerHeight - 160 + "px";
+    list.style.width = window.innerWidth - 300 + "px";
+    head.style.width = window.innerWidth - 300 + "px";
+    if (window.innerWidth <= this.state.mobileWidth){
+      list.style.width = "100%";
+      head.style.width = "100%";
     }
-    console.log("changed width to ", window.innerWidth)
     this.setState({ width: window.innerWidth });
-    console.log(this.state.width);
    };
 
   render() {
     const { width } = this.state;
-    const isMobile = width <= 700;
+    const isMobile = width <= this.state.mobileWidth;
     console.log(width)
     if (isMobile){
       if (this.state.gotData) {}
