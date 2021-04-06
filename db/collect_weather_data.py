@@ -22,24 +22,26 @@ def update_database():
     locations_df['lon'] = lons
     locations_df = locations_df.rename(columns = {'name': 'location'})
     
-
+    # print("Getting forecasts")
     # Get forecats
-    # tic = time.clock()
     forecast_df = met_api.get_current_weather(locations_df, name_col = 'location')
     # toc = time.clock()
     # toc - tic
-        
+    print("All locations fetched, updating MongoDb")
     # Update all locations in database 
     update_all_locations(forecast_df,collection)
+    print("\n")
     print("All locations updated with fresh weather data.")
 
 def collection_loop():
     print("Starting collection loop")
     while True:
         print("Updating...")
-        tic = time.clock()
+        tic = time.perf_counter()
+        print(tic)
         update_database()
-        toc = time.clock()
+        toc = time.perf_counter()
+        print(toc)
         diff = (toc - tic)
         print("Used " + str(math.floor(diff)) + " seconds to update database.")
         waitTime = 60*15 - math.floor(diff)

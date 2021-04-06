@@ -33,7 +33,8 @@ class App extends Component {
 
   async componentDidMount() {
     // const response = await axios.get("http://84.214.69.73:8888/");
-    const response = await axios.get("https://kjipest.no/sorted");
+    // const response = await axios.get("https://kjipest.no/sorted");
+    const response = await axios.get("http://localhost:80/sorted");
     const data = await response.data;
     const dataWithId = data.map((currentItem, index) => {currentItem.index = index; return(currentItem)})
     this.setState({ data: dataWithId, gotData: true});
@@ -46,7 +47,8 @@ class App extends Component {
     if (navigator.geolocation) {
       async function getPosData(position){
         // const locresponse = await axios.get("http://84.214.69.73:8888/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
-        const locresponse = await axios.get("https://kjipest.no/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
+        // const locresponse = await axios.get("https://kjipest.no/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
+        const locresponse = await axios.get("http://localhost:80/lonlat/" + position.coords.longitude + "&" + position.coords.latitude);
         const locData = await locresponse.data;
         let objWithId = dataWithId.find(o => o.location === locData.location);
         this.setState({ locData: locData, 

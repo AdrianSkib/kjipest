@@ -16,7 +16,8 @@ app.use(
 );
 app.use(bodyParser.json());
 // Configure Mongo
-const dbURL = "mongodb://localhost:27017/";
+// const dbURL = "mongodb://localhost:27017/";
+const dbURL = "mongodb+srv://kjipestBackend:kpF1CpxQjDAVmFLn@kjipestcluster.tzoop.mongodb.net/kjipestDB";
 // // Connect to Mongo
 MongoClient.connect(dbURL, function (err, dbclient) {
   if (err) {
@@ -86,12 +87,12 @@ app.get("/lonlat/:lon&:lat", (req, res) => {
   });
 });
 
-var __dirname = "../app/";
-app.use(express.static(path.join(__dirname, 'finishedbuild')));
+var __dirname = "../app";
+app.use(express.static(path.join(__dirname, 'build')));
 /* GET React App */
 app.get('/', function (req, res) {
   console.log("Got frontend request");
-  res.sendFile(path.join(__dirname, 'finishedbuild', 'index.html'));
+  res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
 // Specify the Port where the backend server can be accessed and start listening on that port

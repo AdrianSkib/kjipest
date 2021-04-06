@@ -9,6 +9,7 @@ import json
 import datetime
 
 import xmltodict
+import sys
 
 
 
@@ -21,13 +22,14 @@ def get_forecast_xml(lat, lng):
     """
     
     # Define endpoint and parameters
-    endpoint = 'https://api.met.no/weatherapi/locationforecast/1.9/?'
+    endpoint = 'https://api.met.no/weatherapi/locationforecast/2.0/classic?'
     parameters = {
         'lat': lat,
         'lon': lng,
     }
     # Issue a HTTP GET request
-    r = requests.get(endpoint, parameters)
+    headers = {'User-Agent': 'Kjipest.no'}
+    r = requests.get(endpoint, parameters, headers=headers)
 
     # Return xml data
     return r.content
@@ -61,7 +63,7 @@ def parse_weatherforecast(lat, lon):
     
     # Retrieve data and parse to dict
     xml_data = get_forecast_xml(lat, lon)
-  
+    # print(xml_data)
     parsed_data = xmltodict.parse(xml_data)
  
     if 'weatherdata' in parsed_data.keys():
@@ -121,7 +123,10 @@ def get_current_weather(location_df, name_col = 'kommune'):
     
     # Iterate over location_df to get coordinates
     for i, row in location_df.iterrows():
-        
+        sys.stdout.write("Getting forecast " + str(i) + "/1341")
+        sys.stdout.flush()
+        sys.stdout.write('\r')
+        sys.stdout.flush()
         # Get forecast
         forecast_row = parse_weatherforecast(row.lat, row.lon)
         

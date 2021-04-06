@@ -6,6 +6,7 @@ import numpy as np
 import math
 from meteocalc import Temp, feels_like
 import matplotlib.pyplot as plt
+import sys
 
 
 shortTermWindowSize = 96 # Since there are 96 15-minutes a day and we want short term window of a day
@@ -15,7 +16,7 @@ longTermWindowSize = shortTermWindowSize*30 # Long term window of a month.
 # Sets up connection to server and returns the collection containing weather data for all locations.
 # @Todo: Add authentication (preddy easy)
 def connect_to_db():
-  kjipestDBClient = pymongo.MongoClient("mongodb://localhost:27017/")
+  kjipestDBClient = pymongo.MongoClient("mongodb+srv://kjipestBackend:kpF1CpxQjDAVmFLn@kjipestcluster.tzoop.mongodb.net/kjipestDB")
   kjipestDB = kjipestDBClient["KjipestDB"]
   collection = kjipestDB["Locations"]
   return collection
@@ -221,8 +222,12 @@ def update_location(row, collection):
 
 # Update all locations in database with new weather data.
 def update_all_locations(df, collection):
-  for _, row in df.iterrows():
+  for i, row in df.iterrows():
     update_location(row, collection)
+    sys.stdout.write("Updating db, " + str(i) + "/1341")
+    sys.stdout.flush()
+    sys.stdout.write('\r')
+    sys.stdout.flush()
   # Create sorted index so calling sort on collection is quick.
   create_indexes(collection)
 
@@ -276,4 +281,4 @@ def plotCalcTempKjiphet():
   input("Press key to stop")
 
 # test_db_update()
-recalc_kjiphet()
+# recalc_kjiphet()

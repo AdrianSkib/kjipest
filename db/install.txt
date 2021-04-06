@@ -3,11 +3,12 @@ python
 	pymongo
 	pandas
 	numpy
-	pyplot
 	matplotlib
 	utm
 	requests
 	xmltodict
+	meteocalc
+	dnspython
 git
 visualstudiocode
 	code runner
